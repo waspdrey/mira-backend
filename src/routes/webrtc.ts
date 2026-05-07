@@ -5,7 +5,7 @@ import {
   CreateWebRtcOfferResponse,
   SendIceCandidateBody,
   SendIceCandidateResponse,
-} from "@workspace/api-zod";
+} from "../lib/api-schemas";
 import { sessionStore } from "../lib/session-store";
 
 const router: IRouter = Router();
