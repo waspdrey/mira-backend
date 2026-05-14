@@ -1,9 +1,14 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
 const DECART_API_URL = "https://api3.decart.ai";
+const decartTokenResponseSchema = z.object({
+  apiKey: z.string(),
+  expiresAt: z.string(),
+});
 
 router.post("/session/token", async (req, res): Promise<void> => {
   const apiKey = process.env["DECART_API_KEY"];
@@ -31,11 +36,14 @@ router.post("/session/token", async (req, res): Promise<void> => {
     if (!response.ok) {
       const text = await response.text();
       req.log.error({ status: response.status, body: text }, "Decart token creation failed");
-      res.status(502).json({ error: "upstream_error", message: "Failed to create Decart client token" });
+      res
+        .status(502)
+        .json({ error: "upstream_error", message: "Failed to create Decart client token" });
       return;
     }
 
-    const data = await response.json() as { apiKey: string; expiresAt: string };
+    const responseBody: unknown = await response.json();
+    const data = decartTokenResponseSchema.parse(responseBody);
     req.log.info("Decart client token created");
 
     res.json({ clientToken: data.apiKey, expiresAt: data.expiresAt });

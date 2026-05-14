@@ -3,7 +3,7 @@ import { ValidateAccessKeyBody, ValidateAccessKeyResponse } from "../lib/api-sch
 
 const router: IRouter = Router();
 
-router.post("/auth/validate", async (req, res): Promise<void> => {
+router.post("/auth/validate", (req, res): void => {
   const parsed = ValidateAccessKeyBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "invalid_request", message: parsed.error.message });
@@ -11,9 +11,9 @@ router.post("/auth/validate", async (req, res): Promise<void> => {
   }
 
   const { accessKey } = parsed.data;
-  const ACCESS_KEYS = process.env.ACCESS_KEYS?.split(",").map(key => key.trim()) ?? [];
+  const accessKeys = process.env.ACCESS_KEYS?.split(",").map((key) => key.trim()) ?? [];
 
-  const isValid = ACCESS_KEYS.includes(accessKey);
+  const isValid = accessKeys.includes(accessKey);
 
   res.json(
     ValidateAccessKeyResponse.parse({
