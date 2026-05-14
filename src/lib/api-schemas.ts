@@ -55,3 +55,12 @@ export const UploadReferenceImageResponse = z.object({
   success: z.boolean(),
   message: z.string(),
 });
+
+export const ValidateAccessKeyBody = z.object({
+  accessKey: z.string().min(1),
+});
+
+export const ValidateAccessKeyResponse = z.object({
+  valid: z.boolean(),
+  message: z.string(),
+});
