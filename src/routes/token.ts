@@ -10,10 +10,27 @@ const decartTokenResponseSchema = z.object({
   expiresAt: z.string(),
 });
 
+const TOKEN_EXPIRES_IN_SECONDS = 300;
+const TOKEN_CACHE_BUFFER_MS = 30_000;
+
+let cachedToken:
+  | {
+      clientToken: string;
+      expiresAt: string;
+      expiresAtMs: number;
+    }
+  | null = null;
+
 router.post("/session/token", async (req, res): Promise<void> => {
   const apiKey = process.env["DECART_API_KEY"];
   if (!apiKey) {
     res.status(503).json({ error: "unconfigured", message: "Decart API key is not configured" });
+    return;
+  }
+
+  if (cachedToken && cachedToken.expiresAtMs - TOKEN_CACHE_BUFFER_MS > Date.now()) {
+    req.log.debug("Returning cached Decart client token");
+    res.json({ clientToken: cachedToken.clientToken, expiresAt: cachedToken.expiresAt });
     return;
   }
 
@@ -25,7 +42,7 @@ router.post("/session/token", async (req, res): Promise<void> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        expiresIn: 300,
+        expiresIn: TOKEN_EXPIRES_IN_SECONDS,
         allowedModels: ["lucy-2.1"],
         constraints: {
           realtime: { maxSessionDuration: 600 },
@@ -44,6 +61,11 @@ router.post("/session/token", async (req, res): Promise<void> => {
 
     const responseBody: unknown = await response.json();
     const data = decartTokenResponseSchema.parse(responseBody);
+    cachedToken = {
+      clientToken: data.apiKey,
+      expiresAt: data.expiresAt,
+      expiresAtMs: Date.parse(data.expiresAt),
+    };
     req.log.info("Decart client token created");
 
     res.json({ clientToken: data.apiKey, expiresAt: data.expiresAt });
